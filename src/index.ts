@@ -1,6 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ClassDeclaration, Project, WriterFunction } from 'ts-morph';
+import {
+  ClassDeclaration,
+  ImportDeclaration,
+  Project,
+  WriterFunction,
+} from 'ts-morph';
 
 interface Dependency {
   name: string | undefined;
@@ -10,6 +15,7 @@ interface Dependency {
 interface ParsedTarget {
   name: string | undefined;
   dependencies: Dependency[];
+  imports: string[];
 }
 
 export function fromPascalToKebabCase(
@@ -42,10 +48,15 @@ export function grabFilesSync(currentDirPath: string): string[] {
     }, []);
 }
 
+export function removeClassGeneric(clazz: string): string {
+  return clazz.split('<')[0];
+}
+
 function setUpClassTarget(classes: ClassDeclaration[]): ParsedTarget {
   const target: ParsedTarget = {
     name: undefined,
     dependencies: [],
+    imports: [],
   };
   classes.forEach(clazz => {
     target.name = clazz.getName();
@@ -53,12 +64,28 @@ function setUpClassTarget(classes: ClassDeclaration[]): ParsedTarget {
       c.getParameters().forEach(p =>
         target.dependencies.push({
           name: p.getStructure().name,
-          type: p.getStructure().type,
+          type: removeClassGeneric(<string>p.getStructure().type),
         })
       );
     });
   });
   return target;
+}
+
+function setUpImportDeclarations(
+  imports: ImportDeclaration[],
+  dependencies: Dependency[]
+): string[] {
+  const importDeclarations = [];
+  for (const imp of imports) {
+    const impDeclaration = imp.getFullText();
+    for (const dependency of dependencies) {
+      if (dependency.type && impDeclaration.includes(<string>dependency.type)) {
+        importDeclarations.push(impDeclaration);
+      }
+    }
+  }
+  return importDeclarations;
 }
 
 /**
@@ -75,16 +102,10 @@ function parseTargets(project: Project): ParsedTarget[] {
   for (const filePath of files) {
     project.addSourceFileAtPath(filePath);
     const sourceFile = project.getSourceFileOrThrow(filePath);
+    const imports = sourceFile.getImportDeclarations();
     const classes = sourceFile.getClasses();
-
-    //todo: support imports
-    // const imports = sourceFile.getImportDeclarations();
-    // imports.forEach(imp=> {
-    //   const struct = { file: filePath, imp: imp.getModuleSpecifierValue() };
-    //   console.log(JSON.stringify(struct));
-    // });
-
     const target = setUpClassTarget(classes);
+    target.imports = setUpImportDeclarations(imports, target.dependencies);
     targets.push(target);
   }
   return targets;
@@ -100,7 +121,6 @@ function generateDependenciesTmpl(
       acc +
       `const ${lowerFirst(dependency?.name)}Mock = mock(${dependency.type});
   const ${normDepName}Instance = instance(${normDepName}Mock);
-  
   `
     );
   }, '');
@@ -115,22 +135,33 @@ function generateDependenciesTmpl(
     ''
   );
 
-  return `${setUpInstances} const ${lowerFirst(
+  return `// Mocked dependencies:
+  ${setUpInstances}
+  // Tested target: 
+  const ${lowerFirst(
     testedClass
   )} = new ${testedClass}(${mockedDependenciesInject});
 `;
 }
 
+function generateImportsTmpl(imports: string[]): string {
+  imports.unshift("import { instance, mock, when } from 'ts-mockito';");
+  return imports.reduce((acc, imp) => {
+    return acc + `${imp}`;
+  }, '');
+}
+
 function generateSpecTmpl(
   name: string | undefined,
-  dependenciesTmpl: string
+  dependenciesTmpl: string,
+  importsTmpl: string
 ): string {
-  return `import { instance, mock, when } from 'ts-mockito';
+  return `${importsTmpl}
   
 describe('${name}', () => {
 
   ${dependenciesTmpl}
-  it('should test', () => {
+  it('instance is truthy', () => {
     expect(${lowerFirst(name)}).toBeTruthy();
   });
 });
@@ -143,6 +174,7 @@ describe('${name}', () => {
 async function generateSpecs(): Promise<void> {
   console.log('\x1b[33m%s\x1b[0m', 'Starting! ❤️'); // yellow logging :)
   const project = new Project();
+
   const targets = parseTargets(project).filter(t => t?.name);
 
   console.log(
@@ -154,13 +186,14 @@ async function generateSpecs(): Promise<void> {
   );
 
   for (const target of targets) {
-    const { name, dependencies } = target;
+    const { name, dependencies, imports } = target;
     const dependenciesTmpl =
       dependencies?.length > 0
         ? generateDependenciesTmpl(name, dependencies)
         : `const ${lowerFirst(name)} = new ${name}();`;
     const filename = `${fromPascalToKebabCase(name)}.spec.ts`;
-    const template = generateSpecTmpl(name, dependenciesTmpl);
+    const importsTmpl = generateImportsTmpl(imports);
+    const template = generateSpecTmpl(name, dependenciesTmpl, importsTmpl);
     const specFile = project.createSourceFile(filename, writer =>
       writer.writeLine(template)
     );

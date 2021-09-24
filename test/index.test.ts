@@ -1,8 +1,12 @@
-import { fromPascalToKebabCase, lowerFirst } from '../src';
+import { fromPascalToKebabCase, lowerFirst, removeClassGeneric } from '../src';
 
 describe('index', () => {
   it('test lowerFirst', () => {
     expect(lowerFirst('ConstructFoo')).toEqual('constructFoo');
+  });
+
+  it('test removeClassGeneric', () => {
+    expect(removeClassGeneric('Tree<T>')).toEqual('Tree');
   });
 
   it('test fromPascalToKebabCase', () => {
