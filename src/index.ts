@@ -12,6 +12,15 @@ interface ParsedTarget {
   dependencies: Dependency[];
 }
 
+export function fromPascalToKebabCase(
+  str: string | undefined
+): string | undefined {
+  return str?.replace(
+    /[A-Z]+(?![a-z])|[A-Z]/g,
+    (substring, ofs) => (ofs ? '-' : '') + substring.toLowerCase()
+  );
+}
+
 export function lowerFirst(word: string | undefined): string | undefined {
   return word && word.replace(word.charAt(0), word.charAt(0).toLowerCase());
 }
@@ -150,9 +159,9 @@ async function generateSpecs(): Promise<void> {
       dependencies?.length > 0
         ? generateDependenciesTmpl(name, dependencies)
         : `const ${lowerFirst(name)} = new ${name}();`;
-    const tName = `${name}.spec.ts`;
+    const filename = `${fromPascalToKebabCase(name)}.spec.ts`;
     const template = generateSpecTmpl(name, dependenciesTmpl);
-    const specFile = project.createSourceFile(tName, writer =>
+    const specFile = project.createSourceFile(filename, writer =>
       writer.writeLine(template)
     );
     await specFile.save();
