@@ -2,10 +2,8 @@
 
 Run 
 ``npx qutilz --specs`` from a local folder to generate a new spec template for local class-based components/services 
-(Jest + ts-mockito)
-.
+(Jest + ts-mockito) and for exported functions.
 
-Can be used for fast test development in frameworks like Angular for e.g.
 
-TBD:
-specs for function declarations 
+
+

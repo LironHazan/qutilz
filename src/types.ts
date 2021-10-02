@@ -6,9 +6,10 @@ export interface Dependency {
 }
 
 export interface ParsedTarget {
-  name: string | undefined;
-  dependencies: Dependency[];
-  imports: string[];
+  filename: string | undefined;
+  className: string | undefined;
+  dependencies: Dependency[] | undefined;
+  imports: string[] | undefined;
   functions: FnTargetStruct[] | undefined;
 }
 
