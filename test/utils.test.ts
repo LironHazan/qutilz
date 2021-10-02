@@ -1,4 +1,8 @@
-import { fromPascalToKebabCase, lowerFirst, removeClassGeneric } from '../src';
+import {
+  fromPascalToKebabCase,
+  lowerFirst,
+  removeClassGeneric,
+} from '../src/utils';
 
 describe('index', () => {
   it('test lowerFirst', () => {

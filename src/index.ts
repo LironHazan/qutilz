@@ -1,68 +1,29 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { ClassDeclaration, ImportDeclaration, Project } from 'ts-morph';
+import { Dependency, ParsedTarget } from './types';
 import {
-  ClassDeclaration,
-  ImportDeclaration,
-  Project,
-  WriterFunction,
-} from 'ts-morph';
+  fromPascalToKebabCase,
+  grabFilesSync,
+  lowerFirst,
+  removeClassGeneric,
+} from './utils';
+import {
+  generateDependenciesTmpl,
+  generateImportsTmpl,
+  generateSpecTmpl,
+  generateUtilFnTmpl,
+} from './templates';
+import { setupFunctions } from './get-functions';
 
-interface Dependency {
-  name: string | undefined;
-  type: string | WriterFunction | undefined;
-}
-
-interface ParsedTarget {
-  name: string | undefined;
-  dependencies: Dependency[];
-  imports: string[];
-}
-
-export function fromPascalToKebabCase(
-  str: string | undefined
-): string | undefined {
-  return str?.replace(
-    /[A-Z]+(?![a-z])|[A-Z]/g,
-    (substring, ofs) => (ofs ? '-' : '') + substring.toLowerCase()
-  );
-}
-
-export function lowerFirst(word: string | undefined): string | undefined {
-  return word && word.replace(word.charAt(0), word.charAt(0).toLowerCase());
-}
-
-/**
- * Extracts the filePaths of a local folder, one level - no nesting
- * @param currentDirPath
- */
-export function grabFilesSync(currentDirPath: string): string[] {
-  return fs
-    .readdirSync(currentDirPath)
-    .reduce((acc: string[], name: string) => {
-      const filePath = path.join(currentDirPath, name);
-      const stat = fs.statSync(filePath);
-      if (stat.isFile()) {
-        acc.push(filePath);
-      }
-      return acc;
-    }, []);
-}
-
-export function removeClassGeneric(clazz: string): string {
-  return clazz.split('<')[0];
-}
-
-function setUpClassTarget(classes: ClassDeclaration[]): ParsedTarget {
-  const target: ParsedTarget = {
-    name: undefined,
+function setupClassTarget(classes: ClassDeclaration[]): Partial<ParsedTarget> {
+  const target = {
+    className: undefined,
     dependencies: [],
-    imports: [],
-  };
+  } as Partial<ParsedTarget>;
   classes.forEach(clazz => {
-    target.name = clazz.getName();
+    target.className = clazz.getName();
     clazz.getConstructors().forEach(c => {
       c.getParameters().forEach(p =>
-        target.dependencies.push({
+        target.dependencies?.push({
           name: p.getStructure().name,
           type: removeClassGeneric(<string>p.getStructure().type),
         })
@@ -72,9 +33,9 @@ function setUpClassTarget(classes: ClassDeclaration[]): ParsedTarget {
   return target;
 }
 
-function setUpImportDeclarations(
+function setupImportDeclarations(
   imports: ImportDeclaration[],
-  dependencies: Dependency[]
+  dependencies: Dependency[] = []
 ): string[] {
   const importDeclarations = [];
   for (const imp of imports) {
@@ -97,75 +58,25 @@ function setUpImportDeclarations(
  */
 function parseTargets(project: Project): ParsedTarget[] {
   const files = grabFilesSync('./'); // grab all files from local folder
-  console.log('grabbed ', files);
   const targets = [];
   for (const filePath of files) {
     project.addSourceFileAtPath(filePath);
     const sourceFile = project.getSourceFileOrThrow(filePath);
     const imports = sourceFile.getImportDeclarations();
     const classes = sourceFile.getClasses();
-    const target = setUpClassTarget(classes);
-    target.imports = setUpImportDeclarations(imports, target.dependencies);
+    const functions = sourceFile.getFunctions();
+    const { className, dependencies } = setupClassTarget(classes);
+    const target = {
+      filename: sourceFile.getBaseName(),
+      className,
+      dependencies,
+      imports: setupImportDeclarations(imports, dependencies),
+      functions: setupFunctions(functions),
+    };
+
     targets.push(target);
   }
   return targets;
-}
-
-function generateDependenciesTmpl(
-  testedClass: string | undefined,
-  dependencies: Dependency[]
-): string {
-  const setUpInstances = dependencies.reduce((acc, dependency) => {
-    const normDepName = lowerFirst(dependency?.name);
-    return (
-      acc +
-      `const ${lowerFirst(dependency?.name)}Mock = mock(${dependency.type});
-  const ${normDepName}Instance = instance(${normDepName}Mock);
-  `
-    );
-  }, '');
-
-  const mockedDependenciesInject = dependencies.reduce(
-    (acc: string, dependency, i) => {
-      const normDepName = lowerFirst(dependency?.name);
-      return i < dependencies.length - 1
-        ? acc + `${normDepName}Instance, `
-        : acc + `${normDepName}Instance`;
-    },
-    ''
-  );
-
-  return `// Mocked dependencies:
-  ${setUpInstances}
-  // Tested target: 
-  const ${lowerFirst(
-    testedClass
-  )} = new ${testedClass}(${mockedDependenciesInject});
-`;
-}
-
-function generateImportsTmpl(imports: string[]): string {
-  imports.unshift("import { instance, mock, when } from 'ts-mockito';");
-  return imports.reduce((acc, imp) => {
-    return acc + `${imp}`;
-  }, '');
-}
-
-function generateSpecTmpl(
-  name: string | undefined,
-  dependenciesTmpl: string,
-  importsTmpl: string
-): string {
-  return `${importsTmpl}
-  
-describe('${name}', () => {
-
-  ${dependenciesTmpl}
-  it('instance is truthy', () => {
-    expect(${lowerFirst(name)}).toBeTruthy();
-  });
-});
-`;
 }
 
 /**
@@ -175,30 +86,53 @@ async function generateSpecs(): Promise<void> {
   console.log('\x1b[33m%s\x1b[0m', 'Starting! ❤️'); // yellow logging :)
   const project = new Project();
 
-  const targets = parseTargets(project).filter(t => t?.name);
+  const classBasedTargets = parseTargets(project).filter(t => t?.className);
+  const fnBasedTargets = parseTargets(project).filter(
+    t => t?.functions && t?.functions.length > 0
+  );
 
   console.log(
     'Generating specs for: ',
-    targets.reduce((acc: string[], t: ParsedTarget) => {
-      acc.push(t.name as string);
+    classBasedTargets.reduce((acc: string[], t: ParsedTarget) => {
+      acc.push(t.className as string);
       return acc;
     }, [])
   );
 
-  for (const target of targets) {
-    const { name, dependencies, imports } = target;
+  console.log(
+    'Generating specs for: ',
+    fnBasedTargets.reduce((acc: string[], t: ParsedTarget) => {
+      !acc.includes(t.filename as string) && acc.push(t.filename as string);
+      return acc;
+    }, [])
+  );
+
+  for (const target of classBasedTargets) {
+    const { className, dependencies, imports } = target;
     const dependenciesTmpl =
-      dependencies?.length > 0
-        ? generateDependenciesTmpl(name, dependencies)
-        : `const ${lowerFirst(name)} = new ${name}();`;
-    const filename = `${fromPascalToKebabCase(name)}.spec.ts`;
+      dependencies && dependencies?.length > 0
+        ? generateDependenciesTmpl(className, dependencies)
+        : `const ${lowerFirst(className)} = new ${className}();`;
+    const filename = `${fromPascalToKebabCase(className)}.spec.ts`;
     const importsTmpl = generateImportsTmpl(imports);
-    const template = generateSpecTmpl(name, dependenciesTmpl, importsTmpl);
+    const template = generateSpecTmpl(className, dependenciesTmpl, importsTmpl);
     const specFile = project.createSourceFile(filename, writer =>
       writer.writeLine(template)
     );
     await specFile.save();
   }
+
+  for (const fn of fnBasedTargets) {
+    const { filename, functions } = fn;
+    const normalizedName = filename?.replace('.ts', '');
+    const fname = `${fromPascalToKebabCase(normalizedName)}.spec.ts`;
+    const functionsTmpl = generateUtilFnTmpl(functions);
+    const specFile = project.createSourceFile(fname, writer =>
+      writer.writeLine(functionsTmpl as string)
+    );
+    await specFile.save();
+  }
+
   return void 0;
 }
 
