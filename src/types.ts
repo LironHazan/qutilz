@@ -7,6 +7,7 @@ export interface Dependency {
 
 export interface ParsedTarget {
   filename: string | undefined;
+  filePath: string | undefined;
   className: string | undefined;
   dependencies: Dependency[] | undefined;
   imports: string[] | undefined;

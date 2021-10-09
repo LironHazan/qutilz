@@ -34,7 +34,11 @@ export function generateDependenciesTmpl(
 `;
 }
 
-export function generateImportsTmpl(
+/**
+ * Sets up dependencies imports
+ * @param imports
+ */
+export function generateDepImportsTmpl(
   imports: string[] | undefined
 ): string | undefined {
   imports?.unshift("import { instance, mock, when } from 'ts-mockito';");
@@ -57,9 +61,9 @@ describe('${className}', () => {
 });`;
 }
 
-//todo: add import support for exported functions
 export function generateUtilFnTmpl(
-  functions: FnTargetStruct[] | undefined
+  functions: FnTargetStruct[] | undefined,
+  testedTargetImport: string
 ): string | undefined {
   if (!functions) return undefined;
   const fns = functions?.reduce(
@@ -72,10 +76,31 @@ export function generateUtilFnTmpl(
     `,
     ''
   );
-  return `describe('Testing', () => {
+  return `${testedTargetImport}
+  describe('Testing', () => {
 
    ${fns}
 
   });
   `;
+}
+
+export function generateTestedTargetsImport(
+  filePath: string | undefined,
+  testedTarget: string[]
+): string {
+  // remove suffix from filepath
+  const split = filePath?.split('.');
+  split?.pop();
+  filePath = split?.join('.');
+  const targets = testedTarget.reduce((acc, target, i) => {
+    return i < testedTarget.length - 1
+      ? acc +
+          `
+  ${target},`
+      : acc +
+          `
+  ${target}`;
+  }, '');
+  return `import { ${targets} } from '${filePath}'; `;
 }
