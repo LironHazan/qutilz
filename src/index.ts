@@ -8,8 +8,9 @@ import {
 } from './utils';
 import {
   generateDependenciesTmpl,
-  generateImportsTmpl,
+  generateDepImportsTmpl,
   generateSpecTmpl,
+  generateTestedTargetsImport,
   generateUtilFnTmpl,
 } from './templates';
 import { setupFunctions } from './get-functions';
@@ -68,12 +69,12 @@ function parseTargets(project: Project): ParsedTarget[] {
     const { className, dependencies } = setupClassTarget(classes);
     const target = {
       filename: sourceFile.getBaseName(),
+      filePath: sourceFile.getFilePath(), //todo should fix to get the source project path
       className,
       dependencies,
       imports: setupImportDeclarations(imports, dependencies),
       functions: setupFunctions(functions),
     };
-
     targets.push(target);
   }
   return targets;
@@ -108,14 +109,18 @@ async function generateSpecs(): Promise<void> {
   );
 
   for (const target of classBasedTargets) {
-    const { className, dependencies, imports } = target;
+    const { className, dependencies, imports, filePath } = target;
     const dependenciesTmpl =
       dependencies && dependencies?.length > 0
         ? generateDependenciesTmpl(className, dependencies)
         : `const ${lowerFirst(className)} = new ${className}();`;
     const filename = `${fromPascalToKebabCase(className)}.spec.ts`;
-    const importsTmpl = generateImportsTmpl(imports);
-    const template = generateSpecTmpl(className, dependenciesTmpl, importsTmpl);
+    const testedTargetImp = generateTestedTargetsImport(filePath, [
+      className as string,
+    ]);
+    const depsImportDeclarations = generateDepImportsTmpl(imports);
+    const allImports = depsImportDeclarations + '\n' + testedTargetImp;
+    const template = generateSpecTmpl(className, dependenciesTmpl, allImports);
     const specFile = project.createSourceFile(filename, writer =>
       writer.writeLine(template)
     );
@@ -123,10 +128,13 @@ async function generateSpecs(): Promise<void> {
   }
 
   for (const fn of fnBasedTargets) {
-    const { filename, functions } = fn;
+    const { filename, functions, filePath } = fn;
     const normalizedName = filename?.replace('.ts', '');
     const fname = `${fromPascalToKebabCase(normalizedName)}.spec.ts`;
-    const functionsTmpl = generateUtilFnTmpl(functions);
+    const testedTargetImport = generateTestedTargetsImport(filePath, [
+      ...(functions?.map(f => f.fnName) as string[]),
+    ]);
+    const functionsTmpl = generateUtilFnTmpl(functions, testedTargetImport);
     const specFile = project.createSourceFile(fname, writer =>
       writer.writeLine(functionsTmpl as string)
     );
