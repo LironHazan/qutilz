@@ -4,6 +4,8 @@ Run
 ``npx qutilz --specs`` from a local folder to generate a new spec template for local class-based components/services 
 (Jest + ts-mockito) and for exported functions.
 
+Resources: [background-blog-post](https://itnext.io/qutilz-for-a-quicker-unit-testing-development-55cc614c3964)
+
 
 
 
