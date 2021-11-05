@@ -1,5 +1,5 @@
 {
-  "version": "0.1.6",
+  "version": "0.1.8",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -25,7 +25,9 @@
     "prepare": "tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why",
-    "gen:local": "tsc src/index.ts && cd src && node ./index.js"
+    "gen:local": "tsc src/index.ts && cd src && node ./index.js",
+    "gen:report": "tsc src/reporter/reporter.ts && cd src/reporter && node ./reporter.js",
+    "build:report": "tsc src/reporter/reporter.ts && cp src/reporter/reporter.js ./dist"
   },
   "peerDependencies": {},
   "husky": {

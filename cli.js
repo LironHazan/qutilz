@@ -22,9 +22,17 @@ function qutilz() {
   }
 }
 
+function report() {
+  module.exports = require('./dist/reporter.js');
+}
+
 function run() {
   if (argv.specs) {
     qutilz();
+    return;
+  }
+  if (argv.report) {
+    report();
     return;
   }
   console.log('Please try specifying the --spescs flag: npx quitilz --specs');

@@ -10,9 +10,8 @@ export function fromPascalToKebabCase(
   );
 }
 
-export function lowerFirst(word: string | undefined): string | undefined {
-  return word && word.replace(word.charAt(0), word.charAt(0).toLowerCase());
-}
+export const lowerFirst = (word: string | undefined): string | undefined =>
+  word && word.replace(word.charAt(0), word.charAt(0).toLowerCase());
 
 export function removeClassGeneric(clazz: string): string {
   return clazz.split('<')[0];
