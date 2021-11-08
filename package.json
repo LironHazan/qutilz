@@ -1,5 +1,5 @@
 {
-  "version": "0.1.13",
+  "version": "0.1.14",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -23,7 +23,7 @@
     "test": "test",
     "lint": "lint",
     "gen:local": "tsc src/test-gen/index.ts && cd src && node ./index.js",
-    "gen:report": "tsc src/reporter/reporter.ts && cd src/reporter && node ./reporter.js"
+    "gen:report:local": "tsc src/reporter/reporter.ts && cd tests && node ../src/reporter/reporter.js"
   },
   "husky": {
     "hooks": {
