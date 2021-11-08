@@ -21,6 +21,7 @@ const fgGreen = '\x1b[32m';
  * and reformat to a report
  */
 async function testsReporter(): Promise<void> {
+  console.log('Printing report', fgGreen);
   const project = new Project();
   const files = grabFilesSync('./'); // grab all files from local folder
   for (const filePath of files) {

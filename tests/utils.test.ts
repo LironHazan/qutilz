@@ -2,7 +2,7 @@ import {
   fromPascalToKebabCase,
   lowerFirst,
   removeClassGeneric,
-} from '../src/utils';
+} from '../src/test-gen/utils';
 
 describe('index', () => {
   it('test lowerFirst', () => {

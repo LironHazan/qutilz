@@ -1,12 +1,6 @@
 {
-  "version": "0.1.8",
+  "version": "0.1.13",
   "license": "MIT",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "src"
-  ],
   "engines": {
     "node": ">=10"
   },
@@ -18,21 +12,22 @@
     "gen": "./cli.js"
   },
   "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build",
-    "size": "size-limit",
-    "analyze": "size-limit --why",
-    "gen:local": "tsc src/index.ts && cd src && node ./index.js",
-    "gen:report": "tsc src/reporter/reporter.ts && cd src/reporter && node ./reporter.js",
-    "build:report": "tsc src/reporter/reporter.ts && cp src/reporter/reporter.js ./dist"
+    "build:reporter": "node scripts/esbuild.reporter.config.js",
+    "build:testgen": "node scripts/esbuild.testgen.config.js",
+    "cp:readme": "cp -rf README.md lib/@qutilz",
+    "cp:license": "cp -rf LICENSE lib/@qutilz/",
+    "cp:pkjson": "cp -rf package.json lib/@qutilz/",
+    "cp:cli": "cp -rf cli.js lib/@qutilz/",
+    "cp-all": "npm run cp:readme && npm run cp:license && npm run cp:pkjson && npm run cp:cli",
+    "build-all": "npm run build:testgen && npm run build:reporter && npm run cp-all",
+    "test": "test",
+    "lint": "lint",
+    "gen:local": "tsc src/test-gen/index.ts && cd src && node ./index.js",
+    "gen:report": "tsc src/reporter/reporter.ts && cd src/reporter && node ./reporter.js"
   },
-  "peerDependencies": {},
   "husky": {
     "hooks": {
-      "pre-commit": "tsdx lint"
+      "pre-commit": "lint"
     }
   },
   "prettier": {
@@ -43,22 +38,14 @@
   },
   "name": "qutilz",
   "author": "lironh",
-  "module": "dist/qutils.esm.js",
-  "size-limit": [
-    {
-      "path": "dist/qutils.cjs.production.min.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/qutils.esm.js",
-      "limit": "10 KB"
-    }
-  ],
   "devDependencies": {
-    "@size-limit/preset-small-lib": "^5.0.3",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.6",
+    "esbuild": "^0.12.29",
+    "esbuild-node-externals": "^1.3.0",
     "husky": "^7.0.2",
-    "size-limit": "^5.0.3",
-    "tsdx": "^0.14.1",
+    "jest": "^27.3.1",
+    "ts-jest": "^27.0.7",
     "tslib": "^2.3.1",
     "typescript": "^4.4.3"
   },

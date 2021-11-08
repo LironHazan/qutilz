@@ -15,15 +15,11 @@ const fgGreen = '\x1b[32m';
 console.log(fgGreen, logo);
 
 function qutilz() {
-  if (process.env.NODE_ENV === 'production') {
-    module.exports = require('./dist/qutilz.cjs.production.min.js');
-  } else {
-    module.exports = require('./dist/qutilz.cjs.development.js');
-  }
+      module.exports = require('./test-gen.js');
 }
 
 function report() {
-  module.exports = require('./dist/reporter.js');
+  module.exports = require('./reporter.js');
 }
 
 function run() {
