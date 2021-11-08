@@ -1,4 +1,4 @@
-import { Project, ts } from 'ts-morph';
+import {Identifier, Project, ts} from 'ts-morph';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,6 +36,14 @@ function grabFilesSync(currentDirPath: string): string[] {
 async function testsReporter(): Promise<void> {
     const files = grabFilesSync('./'); // grab all files from local folder
     const tests: Set<string> = new Set();
+    const addTest = <T extends { getText: () => string }>(str: T, id: Identifier, tests: Set<string>) => {
+        if (id.getText() === 'describe') {
+            tests.add(`[suite]: ${str.getText()}`)
+        }
+        else if (id.getText() === 'it') {
+            tests.add(`[test]: ${str.getText()}`);
+        }
+    }
     const project = new Project();
     for (const filePath of files) {
         console.log('Making a report for: ', filePath);
@@ -45,17 +53,18 @@ async function testsReporter(): Promise<void> {
             ce.getDescendantsOfKind(ts.SyntaxKind.Identifier)
                 .filter(id => id.getText() === 'describe' || id.getText() === 'it')
                 .forEach((id) => {
+
+
                     id.getNextSiblings()
                         .forEach((sibling) => {
                         sibling.getChildrenOfKind(ts.SyntaxKind.StringLiteral)
-                            .forEach((str) => {
-                            if (id.getText() === 'describe') {
-                                tests.add(`[suite]: ${str.getText()}`)
-                            }
-                            else if (id.getText() === 'it') {
-                                tests.add(`[test]: ${str.getText()}`);
-                            }
-                        });
+                            .forEach((str) => addTest(str, id, tests));
+                    });
+
+                    id.getNextSiblings()
+                        .forEach((sibling) => {
+                        sibling.getChildrenOfKind(ts.SyntaxKind.NoSubstitutionTemplateLiteral)
+                            .forEach((str) => addTest(str, id, tests));
                     });
             });
         });
