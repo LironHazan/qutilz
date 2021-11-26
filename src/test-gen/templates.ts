@@ -1,4 +1,4 @@
-import { Dependency, FnTargetStruct } from './types';
+import { ClassMethod, Dependency, FnTargetStruct, MethodType } from './types';
 import { lowerFirst } from './utils';
 
 export function generateDependenciesTmpl(
@@ -48,7 +48,8 @@ export function generateDepImportsTmpl(
 export function generateSpecTmpl(
   className: string | undefined,
   dependenciesTmpl: string | undefined,
-  importsTmpl: string | undefined
+  importsTmpl: string | undefined,
+  classMethodsTmpl: string | undefined
 ): string {
   return `${importsTmpl}
   
@@ -58,6 +59,9 @@ describe('${className}', () => {
   it('instance is truthy', () => {
     expect(${lowerFirst(className)}).toBeTruthy();
   });
+  
+  ${classMethodsTmpl}
+  
 });`;
 }
 
@@ -103,4 +107,35 @@ export function generateTestedTargetsImport(
   ${target}`;
   }, '');
   return `import { ${targets} } from '${filePath}'; `;
+}
+
+export function generateClassMethodsTmpl(
+  methods: ClassMethod[] | undefined,
+  className: string | undefined
+) {
+  const staticMethods = methods
+    ?.filter((m) => m.type === MethodType.Static)
+    .reduce(
+      (acc, method) =>
+        acc +
+        `it('should test ${method.name}', () => {
+      expect(${className}.${method.name}).toBeTruthy();
+    });
+    
+    `,
+      ''
+    );
+  const instanceMethods = methods
+    ?.filter((m) => m.type === MethodType.Instance)
+    .reduce(
+      (acc, method) =>
+        acc +
+        `it('should test ${method.name}', () => {
+      expect(${lowerFirst(className)}.${method.name}).toBeTruthy();
+    });
+    
+    `,
+      ''
+    );
+  return `${instanceMethods} ${staticMethods}`;
 }
