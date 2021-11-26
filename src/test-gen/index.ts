@@ -1,38 +1,16 @@
-import { ClassDeclaration, ImportDeclaration, Project } from 'ts-morph';
+import { ImportDeclaration, Project } from 'ts-morph';
 import { Dependency, ParsedTarget } from './types';
+import { fromPascalToKebabCase, grabFilesSync, lowerFirst } from './utils';
 import {
-  fromPascalToKebabCase,
-  grabFilesSync,
-  lowerFirst,
-  removeClassGeneric,
-} from './utils';
-import {
+  generateClassMethodsTmpl,
   generateDependenciesTmpl,
   generateDepImportsTmpl,
   generateSpecTmpl,
   generateTestedTargetsImport,
   generateUtilFnTmpl,
 } from './templates';
-import { setupFunctions } from './get-functions';
-
-function setupClassTarget(classes: ClassDeclaration[]): Partial<ParsedTarget> {
-  const target = {
-    className: undefined,
-    dependencies: [],
-  } as Partial<ParsedTarget>;
-  classes.forEach(clazz => {
-    target.className = clazz.getName();
-    clazz.getConstructors().forEach(c => {
-      c.getParameters().forEach(p =>
-        target.dependencies?.push({
-          name: p.getStructure().name,
-          type: removeClassGeneric(<string>p.getStructure().type),
-        })
-      );
-    });
-  });
-  return target;
-}
+import { setupFunctions } from './functions';
+import { setupClassTarget } from './classes';
 
 function setupImportDeclarations(
   imports: ImportDeclaration[],
@@ -66,7 +44,7 @@ function parseTargets(project: Project): ParsedTarget[] {
     const imports = sourceFile.getImportDeclarations();
     const classes = sourceFile.getClasses();
     const functions = sourceFile.getFunctions();
-    const { className, dependencies } = setupClassTarget(classes);
+    const { className, dependencies, methods } = setupClassTarget(classes);
     const target = {
       filename: sourceFile.getBaseName(),
       filePath: sourceFile.getFilePath(), //todo should fix to get the source project path
@@ -74,6 +52,7 @@ function parseTargets(project: Project): ParsedTarget[] {
       dependencies,
       imports: setupImportDeclarations(imports, dependencies),
       functions: setupFunctions(functions),
+      methods,
     };
     targets.push(target);
   }
@@ -83,13 +62,13 @@ function parseTargets(project: Project): ParsedTarget[] {
 /**
  * Entry point
  */
-async function generateSpecs(): Promise<void> {
+export async function generateSpecs(): Promise<void> {
   console.log('\x1b[33m%s\x1b[0m', 'Starting! ❤️'); // yellow logging :)
   const project = new Project();
 
-  const classBasedTargets = parseTargets(project).filter(t => t?.className);
+  const classBasedTargets = parseTargets(project).filter((t) => t?.className);
   const fnBasedTargets = parseTargets(project).filter(
-    t => t?.functions && t?.functions.length > 0
+    (t) => t?.functions && t?.functions.length > 0
   );
 
   console.log(
@@ -109,7 +88,7 @@ async function generateSpecs(): Promise<void> {
   );
 
   for (const target of classBasedTargets) {
-    const { className, dependencies, imports, filePath } = target;
+    const { className, dependencies, imports, filePath, methods } = target;
     const dependenciesTmpl =
       dependencies && dependencies?.length > 0
         ? generateDependenciesTmpl(className, dependencies)
@@ -119,9 +98,15 @@ async function generateSpecs(): Promise<void> {
       className as string,
     ]);
     const depsImportDeclarations = generateDepImportsTmpl(imports);
+    const classMethodsTmpl = generateClassMethodsTmpl(methods, className);
     const allImports = depsImportDeclarations + '\n' + testedTargetImp;
-    const template = generateSpecTmpl(className, dependenciesTmpl, allImports);
-    const specFile = project.createSourceFile(filename, writer =>
+    const template = generateSpecTmpl(
+      className,
+      dependenciesTmpl,
+      allImports,
+      classMethodsTmpl
+    );
+    const specFile = project.createSourceFile(filename, (writer) =>
       writer.writeLine(template)
     );
     await specFile.save();
@@ -132,10 +117,10 @@ async function generateSpecs(): Promise<void> {
     const normalizedName = filename?.replace('.ts', '');
     const fname = `${fromPascalToKebabCase(normalizedName)}.spec.ts`;
     const testedTargetImport = generateTestedTargetsImport(filePath, [
-      ...(functions?.map(f => f.fnName) as string[]),
+      ...(functions?.map((f) => f.fnName) as string[]),
     ]);
     const functionsTmpl = generateUtilFnTmpl(functions, testedTargetImport);
-    const specFile = project.createSourceFile(fname, writer =>
+    const specFile = project.createSourceFile(fname, (writer) =>
       writer.writeLine(functionsTmpl as string)
     );
     await specFile.save();
@@ -146,4 +131,4 @@ async function generateSpecs(): Promise<void> {
 
 generateSpecs()
   .then()
-  .catch(e => console.log(e));
+  .catch((e) => console.log(e));

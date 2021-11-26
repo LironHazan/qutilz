@@ -12,9 +12,20 @@ export interface ParsedTarget {
   dependencies: Dependency[] | undefined;
   imports: string[] | undefined;
   functions: FnTargetStruct[] | undefined;
+  methods: ClassMethod[] | undefined;
 }
 
 export interface FnTargetStruct {
   fnName: string;
   parameters: string[];
+}
+
+export enum MethodType {
+  Static = 'static',
+  Instance = 'instance',
+}
+
+export interface ClassMethod {
+  name: string | undefined;
+  type: MethodType.Static | MethodType.Instance;
 }
