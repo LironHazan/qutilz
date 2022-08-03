@@ -1,7 +1,11 @@
 [![npm version](https://d25lcipzij17d.cloudfront.net/badge.svg?id=js&type=6&v=0.1.16&x2=0)](https://www.npmjs.com/package/qutilz)
 
 CLI tool
-for generating opinionated specs templates for a quick unit-tests setup including dependencies mocking with the [ts-mockito](https://github.com/NagRock/ts-mockito) mocking library.
+for generating opinionated specs templates for a quick unit-tests setup.
+
+Supports:
+
+- Dependencies mocking with the [ts-mockito](https://github.com/NagRock/ts-mockito) mocking library.
 
 Run 
 ``npx qutilz --specs`` from a local folder to generate a new spec template for local class-based components/services 
