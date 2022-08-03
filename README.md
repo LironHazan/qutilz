@@ -15,6 +15,8 @@ Run
 
 Resources: [background-blog-post](https://itnext.io/qutilz-for-a-quicker-unit-testing-development-55cc614c3964)
 
+![image](https://miro.medium.com/max/1012/1*kEdF-SPVJ5DjjJVLQnoCng.png)
+
 Examples:
 
 - For class methods testing:
