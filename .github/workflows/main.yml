@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: | # Install and link dependencies
           npm ci
-          npx lerna bootstrap
+          npm run bootstrap
 
       - name: Build
-        run: npm run build:testgen
+        run: npm run build

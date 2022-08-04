@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "bootstrap": "lerna bootstrap --hoist",
-    "build:testgen": "lerna run build-all",
+    "build": "lerna run build-all",
     "clean": "lerna clean"
   },
   "workspaces": [
