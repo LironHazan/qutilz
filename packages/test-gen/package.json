@@ -1,0 +1,52 @@
+{
+  "version": "0.1.16",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LironHazan/qutilz.git"
+  },
+  "bin": {
+    "gen": "./cli.js"
+  },
+  "scripts": {
+    "build:reporter": "node scripts/esbuild.reporter.config.js",
+    "build:testgen": "node scripts/esbuild.testgen.config.js",
+    "cp:readme": "cp -rf README.md lib/@qutilz",
+    "cp:license": "cp -rf LICENSE lib/@qutilz/",
+    "cp:pkjson": "cp -rf package.json lib/@qutilz/",
+    "cp:cli": "cp -rf cli.js lib/@qutilz/",
+    "cp-all": "npm run cp:readme && npm run cp:license && npm run cp:pkjson && npm run cp:cli",
+    "build-all": "npm run bump && npm run build:testgen && npm run build:reporter && npm run cp-all",
+    "test": "test",
+    "lint": "lint",
+    "bump": "npm version patch --force",
+    "gen:local": "tsc src/test-gen/index.ts && cd src/test-gen && node ./index.js",
+    "gen:report:local": "tsc src/reporter/reporter.ts && cd src/tests && node ../src/reporter/reporter.js"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint"
+    }
+  },
+  "name": "qutilz",
+  "author": "lironh",
+  "devDependencies": {
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.6",
+    "esbuild": "^0.12.29",
+    "esbuild-node-externals": "^1.3.0",
+    "husky": "^7.0.2",
+    "jest": "^27.3.1",
+    "prettier": "^2.5.0",
+    "ts-jest": "^27.0.7",
+    "tslib": "^2.3.1",
+    "typescript": "^4.4.3"
+  },
+  "dependencies": {
+    "ts-morph": "^12.0.0",
+    "yargs": "^17.1.1"
+  }
+}

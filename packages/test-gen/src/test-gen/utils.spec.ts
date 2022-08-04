@@ -1,10 +1,6 @@
-import {
-  fromPascalToKebabCase,
-  lowerFirst,
-  removeClassGeneric,
-} from '../src/test-gen/utils';
+import { fromPascalToKebabCase, lowerFirst, removeClassGeneric } from './utils';
 
-describe('index', () => {
+describe('utils', () => {
   it('test lowerFirst', () => {
     expect(lowerFirst('ConstructFoo')).toEqual('constructFoo');
   });
