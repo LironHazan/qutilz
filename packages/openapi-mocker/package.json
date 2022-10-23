@@ -1,0 +1,19 @@
+{
+  "name": "@qutils/openapi-mocker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@apidevtools/swagger-parser": "^10.1.0",
+    "mock-json-schema": "^1.1.1"
+  },
+  "devDependencies": {
+    "vitest": "^0.24.3"
+  }
+}
